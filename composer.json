@@ -1,0 +1,23 @@
+{
+  "name": "nm/smoovie",
+  "description": "Video tools using FFMPEG",
+  "license": "MIT",
+  "keywords": ["video", "encoding", "video encoding", "video processing"],
+  "authors": [
+    {
+      "name": "Nick Mow",
+      "email": "nickmow@gmail.com"
+    }
+  ],
+  "require": {
+
+  },
+  "require-dev": {
+    "phpunit/phpunit": "4.0.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "NM\\Smoovie\\": "src"
+    }
+  }
+}
