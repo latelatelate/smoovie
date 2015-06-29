@@ -154,11 +154,4 @@ class Smoovie {
 
     }
 
-    public function hasCheese($bool = true)
-    {
-        return $bool;
-    }
-
-
-
 }
