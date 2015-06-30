@@ -5,16 +5,12 @@ use SplFileInfo;
 
 class Smoovie {
 
-    /**
-     * Stores the current ffmpeg cmd
-     *
-     * @var string
-     */
     protected $cmd;
     protected $src;
     protected $mimetype;
     protected $duration;
     protected $frames;
+    protected $previewPath;
     protected $allowed = [
         "video/animaflex",
         "video/x-ms-asf",
@@ -53,6 +49,11 @@ class Smoovie {
         "video/ogg",
         "video/mp4"
     ];
+
+    public function __construct()
+    {
+        $this->previewPath = __DIR__.'/../output/';
+    }
 
 
     public function make($video)
@@ -152,6 +153,46 @@ class Smoovie {
 
         return $output[0];
 
+    }
+
+    /**
+     * Returns total number of frames in video
+     *
+     * @param string $output optional output file, uses preview path by default
+     * @param int $seconds clip length (in seconds), defaults to 10
+     * @return float total number of frames
+     * @return array with 200 Success or Error code + msg
+     */
+    public function copy($output = null, $seconds = null)
+    {
+        // if no output specified, use default path
+        if (!$output)
+        {
+            $file = basename($this->src);
+            $output = $this->previewPath . $file;
+        }
+
+        // if time limit not specified, default to 10sec
+        if (!$seconds)
+        {
+            $seconds = 10;
+        }
+
+        $cmd = 'ffmpeg -i '. escapeshellarg($this->src) .' -t '. escapeshellarg($seconds) .' '. escapeshellarg($output);
+
+        print_r($cmd);
+        die();
+
+        try {
+            exec($cmd);
+            $result = [200, 'success'];
+        }
+        catch (Exception $e)
+        {
+            $result = [500, $e->getCode() . ': ' . $e->getMessage()];
+        }
+
+        return $result;
     }
 
 }
