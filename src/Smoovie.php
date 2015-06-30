@@ -1,16 +1,21 @@
 <?php namespace NM\Smoovie;
 
 use Exception;
-use SplFileInfo;
 
 class Smoovie {
 
     protected $cmd;
     protected $src;
     protected $mimetype;
+    protected $filename;
+    protected $basename;
+    protected $extension;
     protected $duration;
     protected $frames;
+    protected $fps;
     protected $previewPath;
+    protected $thumbPath;
+    protected $galleryPath;
     protected $allowed = [
         "video/animaflex",
         "video/x-ms-asf",
@@ -53,6 +58,8 @@ class Smoovie {
     public function __construct()
     {
         $this->previewPath = __DIR__.'/../output/';
+        $this->thumbPath = __DIR__.'/../output/thumb/';
+        $this->galleryPath = __DIR__.'/../output/gallery/';
     }
 
 
@@ -71,6 +78,11 @@ class Smoovie {
         {
             throw new Exception('Please provide a valid video file.');
         }
+
+        $this->filename = basename($this->src);
+        $tmp = explode('.', $this->filename);
+        $this->basename = $tmp[0];
+        $this->extension = $tmp[1];
 
         return $this;
 
@@ -146,12 +158,31 @@ class Smoovie {
 
         exec($this->cmd, $output);
 
-        if ($output)
+        if ($output && intval($output[0]) != 0)
         {
-            $this->frames = $output[0];
+            $this->frames = intval($output[0]);
         }
 
-        return $output[0];
+        return $this->frames;
+
+    }
+
+    public function fps()
+    {
+        if (!$this->frames)
+        {
+            $this->frames = $this->frames();
+        }
+
+        if (!$this->duration)
+        {
+            $this->duration = $this->duration();
+        }
+
+        $this->fps = $this->frames/$this->duration;
+
+        return $this->fps;
+
 
     }
 
@@ -163,36 +194,86 @@ class Smoovie {
      * @return float total number of frames
      * @return array with 200 Success or Error code + msg
      */
-    public function copy($output = null, $seconds = null)
+    public function preview($output = null, $start = null, $seconds = null)
     {
-        // if no output specified, use default path
+        // if no output specified, use default path, convert to mp4
         if (!$output)
         {
-            $file = basename($this->src);
+            $file = $this->basename . '.mp4';
             $output = $this->previewPath . $file;
         }
 
-        // if time limit not specified, default to 10sec
+        if (!$start)
+        {
+            $start = 0;
+        }
+
         if (!$seconds)
         {
             $seconds = 10;
         }
 
-        $cmd = 'ffmpeg -i '. escapeshellarg($this->src) .' -t '. escapeshellarg($seconds) .' '. escapeshellarg($output);
+        $cmd = 'ffmpeg -y -i '. escapeshellarg($this->src) .' -vf scale="trunc(oh*a/2)*2:480" -c:v libx264 -crf 26 -preset superfast -ss '. escapeshellarg($start) .' -t '. escapeshellarg($seconds) .' -c:a copy '. escapeshellarg($output);
 
-        print_r($cmd);
-        die();
+        exec($cmd);
 
-        try {
-            exec($cmd);
-            $result = [200, 'success'];
-        }
-        catch (Exception $e)
+        return [200, 'success'];
+    }
+
+    public function thumb()
+    {
+        // start at 2s to compensate for blackface err screen
+        $cmd = 'ffmpeg -ss 2 -i '. $this->src .' -vframes 1 -q:v 2 ' . $this->thumbPath . $this->basename . '.jpg';
+        exec($cmd);
+
+        if (!file_exists($this->thumbPath . $this->basename . '.jpg'))
         {
-            $result = [500, $e->getCode() . ': ' . $e->getMessage()];
+            return [500, 'failed to create image file'];
         }
 
-        return $result;
+        return [200, 'success'];
+
+    }
+
+    public function gallery($max = null)
+    {
+
+        if (!$this->fps)
+        {
+            $this->fps = $this->fps();
+        }
+
+        if (!$this->frames)
+        {
+            $this->frames = $this->frames();
+        }
+
+        if (!$max)
+        {
+            $max = 24;
+        }
+
+        $interval = floor($this->frames/$max);
+        $seconds = floor($interval/$this->fps);
+
+        $galpath = $this->galleryPath . $this->basename . '/';
+        if (!file_exists($galpath)) {
+            mkdir($galpath, 0775, true);
+        }
+
+        $cmd = 'time for i in {0..'.$max.'} ; do ffmpeg -ss `echo $i*'.$seconds.' | bc` -y -i '. $this->src .' -frames:v 1 '.$galpath .'$i.jpg ; done';
+
+        //$cmd = 'ffmpeg -y -i '. $this->src .' -vf fps=1/'.$seconds.' '.$galpath .'%d.jpg';
+
+
+        //$cmd = 'ffmpeg -i '. $this->src .' -vsync 0 -vf "select=\'not(mod(n,'. $interval .'))\'" '. $galpath .'%d.jpg';
+
+        echo $cmd;
+
+        exec($cmd, $output);
+
+        print_r($output);
+
     }
 
 }
