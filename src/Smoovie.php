@@ -217,6 +217,11 @@ class Smoovie {
 
         exec($cmd);
 
+        if (!file_exists($this->previewPath . $this->basename . '.mp4'))
+        {
+            return [500, 'failed to create video file'];
+        }
+
         return [200, 'success'];
     }
 
