@@ -60,16 +60,18 @@ class Smoovie {
         $this->previewPath = __DIR__.'/../output/';
         $this->thumbPath = __DIR__.'/../output/thumb/';
         $this->galleryPath = __DIR__.'/../output/gallery/';
+
     }
 
 
     public function make($video)
     {
         $this->src = $video;
+
         //$this->src = 'test';
         if (!is_readable($this->src))
         {
-            throw new Exception('File not accesible or invalid.');
+            throw new Exception('Unable to read file');
         }
 
         $this->mimetype = mime_content_type($this->src);
@@ -275,9 +277,7 @@ class Smoovie {
 
         echo $cmd;
 
-        exec($cmd, $output);
-
-        print_r($output);
+        exec($cmd);
 
     }
 
