@@ -2,3 +2,7 @@
 composer.lock
 /output/*
 index.php
+worker.php
+/src/Queue
+nohup.out
+output.txt
