@@ -11,7 +11,7 @@ The recommended way to install Smoovie is through [Composer](https://getcomposer
 ```json
 {
     "require": {
-        "nm/smoovie": "master"
+        "nm/smoovie": "dev-master"
     }
 }
 ```
