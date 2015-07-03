@@ -1,19 +1,16 @@
-language: php ruby
-cache:
-  - bundler
-before_install:
-  - ci/install_ffmpeg
-  - export PATH=`pwd`/ffmpeg:$PATH
+language: php
 before_script:
   - composer self-update
   - composer install --prefer-source --no-interaction --dev
+  - mkdir ffmpeg
+  - wget "http://ffmpeg.gusari.org/static/64bit/ffmpeg.static.64bit.latest.tar.gz"
+  - tar xzf ffmpeg.static.64bit.latest.tar.gz -C ffmpeg
+  - export PATH=`pwd`/ffmpeg:$PATH
 php:
   - 5.4
   - 5.5
   - 5.6
   - hhvm
-rvm:
-  - 2.1.1
 script: phpunit
 notifications:
   email:
