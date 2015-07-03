@@ -111,29 +111,17 @@ class Smoovie {
         }
 
         $this->cmd = 'ffprobe -v quiet -of csv=p=0 -show_entries format=duration ' . escapeshellarg($this->src) . ' 2>&1';
-        //return $this->cmd;
 
         exec($this->cmd, $output);
 
-        if (!is_array($output) || empty($output))
+        if (!is_numeric($output[0]))
         {
-            $output = 'FFProbe returned no output ;[. Check your FFMPEG/FFPROBE install.';
+            throw new Exception('Invalid output returned from ffprobe. The following output array was returned: ' . print_r($output));
         }
 
-        $i = floatval(array_values($output)[0]);
+        $this->duration = floatval($output[0]);
 
-        if (!$i && intval($i) == $i)
-        {
-            $output = 'Value returned wasnt a valid duration. There must have been some error rofl.';
-        }
-
-        if (is_float($i))
-        {
-            $output = $i;
-            $this->duration = $i;
-        }
-
-        return $output;
+        return $this->duration;
     }
 
     /**
@@ -160,10 +148,12 @@ class Smoovie {
 
         exec($this->cmd, $output);
 
-        if ($output && intval($output[0]) != 0)
+        if (intval($output[0]) == 0)
         {
-            $this->frames = intval($output[0]);
+            throw new Exception('FFProbe returned an invalid reposnse. Output: ' . print_r($output));
         }
+
+        $this->frames = intval($output[0]);
 
         return $this->frames;
 
@@ -184,7 +174,6 @@ class Smoovie {
         $this->fps = $this->frames/$this->duration;
 
         return $this->fps;
-
 
     }
 
@@ -224,7 +213,7 @@ class Smoovie {
             return [500, 'failed to create video file'];
         }
 
-        return [200, 'success'];
+        return json_encode([200, 'success']);
     }
 
     public function thumb()
