@@ -10,8 +10,7 @@ class SmoovieTest extends PHPUnit_Framework_TestCase
      */
     public function testFileNotReadableException() {
         $file = '/_files/6504/58/6332_unreadable.xlsx';
-        $s = new Smoovie();
-        $s->make($file);
+        $s = new Smoovie($file);
     }
 
     /**
@@ -19,22 +18,12 @@ class SmoovieTest extends PHPUnit_Framework_TestCase
      */
     public function testFileTypeNotAllowedException() {
         $file = __DIR__.'/dummy/test.csv';
-        $s = new Smoovie();
-        $s->make($file);
-    }
-
-    /**
-     * @expectedException Exception
-     */
-    public function testDurationCalledWithoutSourceFileException() {
-        $s = new Smoovie();
-        $s->duration();
+        $s = new Smoovie($file);
     }
 
     public function testDurationIsFloat() {
         $file = __DIR__.'/dummy/test.mp4';
-        $s = new Smoovie();
-        $s->make($file);
+        $s = new Smoovie($file);
 
         $duration = $s->duration();
 
@@ -44,8 +33,7 @@ class SmoovieTest extends PHPUnit_Framework_TestCase
 
     public function testFramesIsInt() {
         $file = __DIR__.'/dummy/test.mp4';
-        $s = new Smoovie();
-        $s->make($file);
+        $s = new Smoovie($file);
 
         $duration = $s->frames();
 
@@ -56,8 +44,7 @@ class SmoovieTest extends PHPUnit_Framework_TestCase
     public function testFpsIsFloat()
     {
         $file = __DIR__.'/dummy/test.mp4';
-        $s = new Smoovie();
-        $s->make($file);
+        $s = new Smoovie($file);
 
         $duration = $s->fps();
 
