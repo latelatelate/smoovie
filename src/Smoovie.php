@@ -55,59 +55,25 @@ class Smoovie {
         "video/mp4"
     ];
 
-    public function __construct()
+    public function __construct($video)
     {
         $this->previewPath = __DIR__.'/../output/';
         $this->thumbPath = __DIR__.'/../output/thumb/';
         $this->galleryPath = __DIR__.'/../output/gallery/';
-
-    }
-
-
-    public function make($video)
-    {
-        $this->src = $video;
-
-        //$this->src = 'test';
-        if (!is_readable($this->src))
-        {
-            throw new Exception('Unable to read file');
-        }
-
-        $this->mimetype = mime_content_type($this->src);
-
-        if (!in_array($this->mimetype, $this->allowed))
-        {
-            throw new Exception('Please provide a valid video file.');
-        }
-
-        $this->filename = basename($this->src);
-        $tmp = explode('.', $this->filename);
-        $this->basename = $tmp[0];
-        $this->extension = $tmp[1];
-
-        return $this;
-
+        $this->make($video);
     }
 
     /**
      * Returns duration of current video instance
      *
-     * @throws Exception if video isn't invoked with make() first
+     * @throws Exception if invalid output from ffprobe
      * @return float duration in seconds.
-     * @return string If errors, return string w/ error
      */
     public function duration()
     {
-
         if ($this->duration)
         {
             return $this->duration;
-        }
-
-        if (!$this->src)
-        {
-            throw new Exception('Please use make(\'xxx.mp4\') before trying to get duration.');
         }
 
         $this->cmd = 'ffprobe -v quiet -of csv=p=0 -show_entries format=duration ' . escapeshellarg($this->src) . ' 2>&1';
@@ -127,21 +93,14 @@ class Smoovie {
     /**
      * Returns total number of frames in video
      *
-     * @throws Exception if no video included
+     * @throws Exception if invalid ffprobe response
      * @return float total number of frames
-     * @return string If errors, return string w/ error
      */
     public function frames()
     {
-
         if ($this->frames)
         {
             return $this->frames;
-        }
-
-        if (!$this->src)
-        {
-            throw new Exception('Please use make(\'xxx.mp4\') before trying to get duration.');
         }
 
         $this->cmd = "ffprobe -i " . escapeshellarg($this->src) . " -show_streams | grep -m 1 'nb_frames=' | cut -f2- -d'='";
@@ -156,9 +115,13 @@ class Smoovie {
         $this->frames = intval($output[0]);
 
         return $this->frames;
-
     }
 
+    /**
+     * Calculate FPS of video
+     *
+     * @return float frames per second
+     */
     public function fps()
     {
         if (!$this->frames)
@@ -174,38 +137,33 @@ class Smoovie {
         $this->fps = $this->frames/$this->duration;
 
         return $this->fps;
-
     }
 
     /**
-     * Returns total number of frames in video
+     * Create a trailer preview of video file. Specify optional /path/to/output.mp4,
+     * start time in seconds, and total length in seconds.
      *
      * @param string $output optional output file, uses preview path by default
+     * @param int $start where to start cutting from (in seconds)
      * @param int $seconds clip length (in seconds), defaults to 10
-     * @return float total number of frames
      * @return array with 200 Success or Error code + msg
      */
     public function preview($output = null, $start = null, $seconds = null)
     {
-        // if no output specified, use default path, convert to mp4
-        if (!$output)
-        {
+        if (!$output) {
             $file = $this->basename . '.mp4';
             $output = $this->previewPath . $file;
         }
 
-        if (!$start)
-        {
+        if (!$start) {
             $start = 0;
         }
 
-        if (!$seconds)
-        {
+        if (!$seconds) {
             $seconds = 10;
         }
 
         $cmd = 'ffmpeg -y -i '. escapeshellarg($this->src) .' -vf scale="trunc(oh*a/2)*2:480" -c:v libx264 -crf 26 -preset superfast -ss '. escapeshellarg($start) .' -t '. escapeshellarg($seconds) .' -c:a copy '. escapeshellarg($output);
-
         exec($cmd);
 
         if (!file_exists($this->previewPath . $this->basename . '.mp4'))
@@ -216,6 +174,11 @@ class Smoovie {
         return json_encode([200, 'success']);
     }
 
+    /**
+     * Take screen cap of ~beginning of video to use as video thumbnail
+     *
+     * @return array with 200 Success or Error code + msg
+     */
     public function thumb()
     {
         // start at 2s to compensate for blackface err screen
@@ -231,6 +194,13 @@ class Smoovie {
 
     }
 
+    /**
+     * Create an "image gallery" from video file. Evenly grabs images
+     * CAUTION: Each image grab uses a separate FFMPEG command in this build. If you grab 100 images, FFMPEG will run 100 times.
+     * Don't break your server ;]. Will implement queuing in the future!
+     *
+     * @param int $max number of images to generate, default 24
+     */
     public function gallery($max = null)
     {
 
@@ -267,6 +237,37 @@ class Smoovie {
         echo $cmd;
 
         exec($cmd);
+
+    }
+
+    /**
+     * Set src file and do initial validation of video.
+     *
+     * @throws Exception if video isn't readable or valid type.
+     * @return mixed $this.
+     */
+    private function make($video)
+    {
+        $this->src = $video;
+
+        if (!is_readable($this->src))
+        {
+            throw new Exception('Unable to read file');
+        }
+
+        $this->mimetype = mime_content_type($this->src);
+
+        if (!in_array($this->mimetype, $this->allowed))
+        {
+            throw new Exception('Please provide a valid video file.');
+        }
+
+        $this->filename = basename($this->src);
+        $tmp = explode('.', $this->filename);
+        $this->basename = $tmp[0];
+        $this->extension = $tmp[1];
+
+        return $this;
 
     }
 
